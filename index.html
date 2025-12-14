@@ -1,0 +1,1497 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RePlan Project Page</title>
+    
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- 使用 Lucide Icons 脚本版 -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background-color: #ffffff; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .6; } }
+        .animate-pulse-slow { animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        img { transition: opacity 0.5s ease-in-out; }
+        
+        /* 隐藏滚动条但保留功能 */
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        .text-gradient {
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-image: linear-gradient(to right, #111827, #4b5563);
+        }
+        
+        /* 进度条动画 */
+        @keyframes progress {
+            0% { width: 0%; }
+            100% { width: 100%; }
+        }
+        .animate-progress {
+            animation: progress 3s linear;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useMemo } = React;
+
+        // --- Icons (SVG Components for better styling) ---
+        const Icons = {
+            FileText: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>,
+            Github: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>,
+            Database: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>,
+            ExternalLink: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>,
+            Check: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>,
+            Copy: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>,
+            Sparkles: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"></path></svg>,
+            Scan: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"></path><path d="M17 3h2a2 2 0 0 1 2 2v2"></path><path d="M21 17v2a2 2 0 0 1-2 2h-2"></path><path d="M7 21H5a2 2 0 0 1-2-2v-2"></path></svg>,
+            Layers: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>,
+            Image: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>,
+            Brain: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"></path><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"></path></svg>,
+            Target: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>,
+            ChevronLeft: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>,
+            ChevronRight: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>,
+            Sliders: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" x2="4" y1="21" y2="14"/><line x1="4" x2="4" y1="10" y2="3"/><line x1="12" x2="12" y1="21" y2="12"/><line x1="12" x2="12" y1="8" y2="3"/><line x1="20" x2="20" y1="21" y2="16"/><line x1="20" x2="20" y1="12" y2="3"/><line x1="1" x2="7" y1="14" y2="14"/><line x1="9" x2="15" y1="8" y2="8"/><line x1="17" x2="23" y1="16" y2="16"/></svg>
+        };
+
+        // ============================================
+        // 0. 颜色配置 (用于不同的BBox)
+        // ============================================
+        const BOX_COLORS = [
+            { border: 'border-rose-500', bg: 'bg-rose-500/10', text: 'bg-rose-500', label: 'text-white' },
+            { border: 'border-indigo-500', bg: 'bg-indigo-500/10', text: 'bg-indigo-500', label: 'text-white' },
+            { border: 'border-emerald-500', bg: 'bg-emerald-500/10', text: 'bg-emerald-500', label: 'text-white' },
+            { border: 'border-amber-500', bg: 'bg-amber-500/10', text: 'bg-amber-500', label: 'text-black' },
+            { border: 'border-cyan-500', bg: 'bg-cyan-500/10', text: 'bg-cyan-500', label: 'text-black' },
+            { border: 'border-fuchsia-500', bg: 'bg-fuchsia-500/10', text: 'bg-fuchsia-500', label: 'text-white' },
+        ];
+        const KEEP_STYLE = { border: 'border-slate-400 border-dashed', bg: 'bg-slate-400/5', text: 'bg-slate-500', label: 'text-white' };
+
+        // --- 1. 全局配置 ---
+        const PROJECT_CONFIG = {
+          title: "RePlan: Reasoning-Guided Region Planning for Complex Instruction-Based Image Editing",
+          authors: [
+            { name: "Tianyuan Qu", superscripts: "1,2", url: "#" },
+            { name: "Lei Ke", superscripts: "1", url: "#" },
+            { name: "Xiaohang Zhan", superscripts: "1", url: "#" },
+            { name: "Longxiang Tang", superscripts: "3", url: "#" },
+            { name: "Yuqi Liu", superscripts: "2", url: "#" },
+            { name: "Bohao Peng", superscripts: "2", url: "#" },
+            { name: "Bei Yu", superscripts: "2", url: "#" },
+            { name: "Dong Yu", superscripts: "1", url: "#" },
+            { name: "Jiaya Jia", superscripts: "3", url: "#" },
+          ],
+          affiliations: [
+            { id: "1", name: "Tencent AI Lab" },
+            { id: "2", name: "CUHK" },
+            { id: "3", name: "HKUST" },
+          ],
+          links: [
+            { name: "Paper", icon: <Icons.FileText />, url: "#" },
+            { name: "Code", icon: <Icons.Github />, url: "#" },
+            { name: "Model", icon: <Icons.Database />, url: "https://huggingface.co/TainU/RePlan-Qwen2.5-VL-7B" },
+            { name: "Benchmark", icon: <Icons.Database />, url: "https://huggingface.co/datasets/TainU/IV-Edit" },
+          ],
+          abstract: `
+            Instruction-based image editing enables natural-language control over visual modifications, yet existing models falter under Instruction-Visual Complexity (IV-Complexity), where intricate instructions meet cluttered or ambiguous scenes.
+            We introduce RePlan (Region-aligned Planning), a plan-then-execute framework that couples a vision-language planner with a diffusion editor. 
+            The planner decomposes instructions via step-by-step reasoning and explicitly grounds them to target regions; 
+            the editor then applies changes using a training-free attention-region injection mechanism, enabling precise, parallel multi-region edits without iterative inpainting. 
+            To strengthen planning, we apply GRPO-based reinforcement learning using 1K instruction-only examples, yielding substantial gains in reasoning fidelity and format reliability. 
+            We further present IV-Edit, a benchmark focused on fine-grained grounding and knowledge-intensive edits. 
+            Across IV-Complex settings, RePlan consistently outperforms strong baselines trained on far larger datasets, improving regional precision and overall fidelity. 
+          `
+        };
+
+        // --- 2. 核心工具：Planning 解析器 ---
+        const parsePlanning = (planningStr, imgW, imgH) => {
+          try {
+            const globalMatch = planningStr.match(/<gen_image>(.*?)<\/gen_image>/s);
+            const regionMatch = planningStr.match(/<region>(.*?)<\/region>/s);
+            
+            const globalInstruction = globalMatch ? globalMatch[1].trim() : "No global instruction";
+            const regionJsonStr = regionMatch ? regionMatch[1].trim() : "[]";
+            
+            const regionData = JSON.parse(regionJsonStr);
+
+            // 第一次遍历：生成基本数据
+            let regions = regionData.map((item, idx) => {
+              const [x1, y1, x2, y2] = item.bbox_2d;
+              const isKeep = item.hint.toLowerCase().includes("keep") || item.hint.toLowerCase().includes("unchanged");
+              const colorTheme = isKeep ? KEEP_STYLE : BOX_COLORS[idx % BOX_COLORS.length];
+              const topPercent = (y1 / imgH) * 100;
+              const leftPercent = (x1 / imgW) * 100;
+              const widthPercent = ((x2 - x1) / imgW) * 100;
+              const heightPercent = ((y2 - y1) / imgH) * 100;
+              
+              let hAlign = 'left'; 
+              if (leftPercent > 70) hAlign = 'right'; 
+
+              return {
+                id: idx,
+                hint: item.hint,
+                isKeep: isKeep,
+                theme: colorTheme,
+                raw: { x1, y1, x2, y2, topPercent, leftPercent, widthPercent, heightPercent }, 
+                labelPos: 'top', 
+                level: 0, 
+                hAlign: hAlign,
+                style: {
+                  left: `${leftPercent}%`,
+                  top: `${topPercent}%`,
+                  width: `${widthPercent}%`,
+                  height: `${heightPercent}%`,
+                  zIndex: isKeep ? 10 : 20 
+                }
+              };
+            });
+
+            // --- 高级标签避让逻辑 (Stacking & Flipping) ---
+            regions.forEach(r => {
+                if (r.raw.topPercent < 15) { 
+                    r.labelPos = 'bottom';
+                }
+            });
+
+            for (let iter = 0; iter < 2; iter++) {
+                regions.sort((a, b) => a.raw.topPercent - b.raw.topPercent);
+
+                for (let i = 0; i < regions.length; i++) {
+                    for (let j = i + 1; j < regions.length; j++) {
+                        const r1 = regions[i];
+                        const r2 = regions[j];
+                        
+                        if (r1.labelPos !== r2.labelPos) continue; 
+                        
+                        const yDist = Math.abs(r1.raw.topPercent - r2.raw.topPercent);
+                        const xDist = Math.abs(r1.raw.leftPercent - r2.raw.leftPercent);
+
+                        if (r1.level === r2.level && yDist < 10 && xDist < 25) {
+                            const canFlipToBottom = r2.labelPos === 'top' && (r2.raw.topPercent + r2.raw.heightPercent < 90);
+                            const canFlipToTop = r2.labelPos === 'bottom' && (r2.raw.topPercent > 10);
+
+                            if (canFlipToBottom) {
+                                r2.labelPos = 'bottom';
+                            } else if (canFlipToTop) {
+                                r2.labelPos = 'top';
+                            } else {
+                                r2.level += 1;
+                            }
+                        }
+                    }
+                }
+            }
+            return { globalInstruction, regions };
+          } catch (e) {
+            console.error("RePlan Parsing Error:", e);
+            return { globalInstruction: "Parsing Error", regions: [] };
+          }
+        };
+
+        // --- 3. 动态演示案例数据 ---
+        const TEASER_EXAMPLES = [
+          {
+            id: 1,
+            title: "Multi-region Edit",
+            instruction: "Replace the spread on the left cracker with peanut butter and the spread on the right cracker with cream cheese.",
+            width: 512, 
+            height: 512,
+            img_input: "assets/teaser_examples/cream/original.png", 
+            img_result: "assets/teaser_examples/cream/final_result.png",
+            
+            planning: `<gen_image>keep remaining part of image unchanged.</gen_image><region>[{"bbox_2d": [30, 175, 308, 358], "hint": "replace the avocado spread with peanut butter"}, {"bbox_2d": [108, 56, 282, 175], "hint": "replace the cream cheese spread with cream cheese"}]</region>`,
+            inputColor: "bg-gray-100", 
+            resultColor: "bg-gray-100",
+          },
+          {
+            id: 2,
+            title: "Visual Referring",
+            instruction: "Change the appearance of the predominantly red apple to look like it is made of polished gold.",
+            width: 768,
+            height: 512, 
+            img_input: "assets/teaser_examples/apple/original.png",
+            img_result: "assets/teaser_examples/apple/final_result.png",
+
+            planning: `<gen_image>keep remaining part of image unchanged.</gen_image><region>[{"bbox_2d": [273, 60, 431, 218], "point_2d": [315, 120], "hint": "change the red apple to look like polished gold"}]</region>
+`,
+            inputColor: "bg-gray-100",
+            resultColor: "bg-gray-100",
+          },
+          {
+            id: 3,
+            title: "Fine-grained Referring",
+            instruction: "Find the woman with light blue backpack and change the color of her shoes to red.",
+            width: 512,
+            height: 768, 
+            img_input: "assets/teaser_examples/crowd/original.png",
+            img_result: "assets/teaser_examples/crowd/final_result.png",
+            
+            planning: `<gen_image>keep remaining part of image unchanged.</gen_image>
+<region>[{"bbox_2d": [446, 98, 542, 356], "point_2d": [498, 180], "hint": "change the color of her shoes to red"}]</region>
+`,
+            inputColor: "bg-gray-100",
+            resultColor: "bg-gray-100",
+          },
+           {
+            id: 4,
+            title: "Object Referring",
+            instruction: "Change the color of the keyboard with yellow sticky notes to black.",
+            width: 512,
+            height: 512,
+            img_input: "assets/teaser_examples/keyboard/original.png",
+            img_result: "assets/teaser_examples/keyboard/final_result.png",
+
+            planning: `<gen_image>keep remaining part of image unchanged.</gen_image><region>[{"bbox_2d": [320, 283, 443, 316], "hint": "change the color of the keyboard to black"}]</region>`,
+            inputColor: "bg-gray-100",
+            resultColor: "bg-gray-100",
+          },
+           {
+            id: 5,
+            title: "Spatial Referring",
+            instruction: "Remove the sunglasses from the person sitting on the left.",
+            width: 512,
+            height: 512,
+            img_input: "assets/teaser_examples/sunalgasses/original.png",
+            img_result: "assets/teaser_examples/sunalgasses/final_result.png",
+
+            planning: `<gen_image>keep remaining part of image unchanged.</gen_image><region>[{"bbox_2d": [91, 89, 252, 406], "hint": "remove the sunglasses from this person"}]</region>`,
+            inputColor: "bg-gray-100",
+            resultColor: "bg-gray-100",
+          },
+           {
+            id: 6,
+            title: "Temporal Reasoning",
+            instruction: "Replace the individual whose attire suggests a greater emphasis on thermal insulation for cold weather with a snowman.",
+            width: 512,
+            height: 512,
+            img_input: "assets/teaser_examples/snowman/original.png",
+            img_result: "assets/teaser_examples/snowman/final_result.png",
+
+            planning: `<gen_image>keep remaining part of image unchanged.</gen_image><region>[{"bbox_2d": [212, 116, 275, 302], "hint": "replace the person in the center with a snowman holding a ski pole"}]</region>`,
+            inputColor: "bg-gray-100",
+            resultColor: "bg-gray-100",
+          },
+           {
+            id: 7,
+            title: "Global & Local Edit",
+            instruction: "The sun has now set, and someone has decorated the large bush on the right with colorful fairy lights for the evening's festivities.",
+            width: 512,
+            height: 512,
+            img_input: "assets/teaser_examples/festival/original.png",
+            img_result: "assets/teaser_examples/festival/final_result.png",
+
+            planning: `<gen_image>Adjust the lighting to simulate a sunset.</gen_image>
+<region>[{"bbox_2d": [488, 190, 644, 415], "hint": "add colorful fairy lights to the bush on the right"}]</region>`,
+            inputColor: "bg-gray-100",
+            resultColor: "bg-gray-100",
+          },
+           {
+            id: 8,
+            title: "Knowledge-based Edit",
+            instruction: "Imagine this vegetable creature is Pinocchio and it has just told a lie. Show what happens to the carrot acting as its nose.",
+            width: 512,
+            height: 512,
+            img_input: "assets/teaser_examples/carrot/original.png",
+            img_result: "assets/teaser_examples/carrot/final_result.png",
+
+            planning: `<gen_image>Keep remaining part of the image unchanged.</gen_image><region>[{"bbox_2d": [298, 189, 479, 326], "hint": "extend the carrot to make it longer"}, {"bbox_2d": [425, 192, 618, 262], "hint": "keep the original carrot unchanged"}]</region>`,
+            inputColor: "bg-gray-100",
+            resultColor: "bg-gray-100",
+          },
+           {
+            id: 9,
+            title: "Poster Text Edit",
+            instruction: "Change the single word at the top of the elephant coloring page, which is written in all caps with a thick black outline and white fill, to 'GIRAFFE'.",
+            width: 512,
+            height: 512,
+            img_input: "assets/teaser_examples/poster/original.png",
+            img_result: "assets/teaser_examples/poster/final_result.png",
+
+            planning: `<gen_image>keep remaining part of image unchanged.</gen_image>
+<region>[{"bbox_2d": [28, 36, 141, 62], "point_2d": [38, 45], "hint": "change the text from 'ELEPHANT' to 'GIRAFFE'"}]</region>`,
+            inputColor: "bg-gray-100",
+            resultColor: "bg-gray-100",
+          },
+           {
+            id: 10,
+            title: "Slides Reasoning",
+            instruction: "Change the closing date for the survey, to reflect an extension of one month due to unexpectedly low initial participation rates.",
+            width: 512,
+            height: 512,
+            img_input: "assets/teaser_examples/slides_reasoning/original.png",
+            img_result: "assets/teaser_examples/slides_reasoning/final_result.png",
+
+            planning: `<gen_image>keep remaining part of image unchanged.</gen_image>
+<region>[{"bbox_2d": [580, 466, 713, 502], "hint": "change the text 'June 15, 2023' to 'July 15, 2023'"}]</region>`,
+            inputColor: "bg-gray-100",
+            resultColor: "bg-gray-100",
+          },
+           {
+            id: 11,
+            title: "Product Image Edit",
+            instruction: "Remove the large, bolded 'XXX' text from the bottle label.",
+            width: 512,
+            height: 512,
+            img_input: "assets/teaser_examples/goods/original.png",
+            img_result: "assets/teaser_examples/goods/final_result.png",
+            planning: `<gen_image>keep remaining part of image unchanged.</gen_image>
+<region>[{"bbox_2d": [298, 396, 345, 421], "hint": "remove the large, bolded 'XXX' text from the label"}]</region>`,
+            inputColor: "bg-gray-100",
+            resultColor: "bg-gray-100",
+          }
+        ];
+
+        // --- 4. 通用组件 ---
+        const Button = ({ icon, name, url, variant = 'primary' }) => {
+          const baseStyle = "flex items-center gap-2 px-5 py-2 rounded-full font-medium transition-all duration-300 transform hover:scale-105 no-underline";
+          const variants = {
+            primary: "bg-gray-900 text-white hover:bg-gray-700 shadow-lg hover:shadow-xl",
+            secondary: "bg-gray-100 text-gray-800 hover:bg-gray-200 border border-gray-200 shadow-sm hover:shadow-md"
+          };
+          return <a href={url} className={`${baseStyle} ${variants[variant]}`}>{icon}<span>{name}</span></a>;
+        };
+
+        const SectionHeader = ({ title, subtitle }) => (
+          <div className="mb-10 text-center">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 tracking-tight mb-3">{title}</h2>
+            {subtitle && <p className="text-gray-500 text-lg max-w-2xl mx-auto">{subtitle}</p>}
+          </div>
+        );
+
+        const AspectRatioContainer = ({ width, height, children, isLoading }) => {
+          const aspectRatio = width / height;
+          return (
+            <div 
+              className="relative shadow-sm transition-all duration-300 group"
+              style={{ 
+                width: '100%', 
+                aspectRatio: `${width}/${height}`,
+                maxHeight: '500px', 
+                maxWidth: `calc(500px * ${aspectRatio})`
+              }}
+            >
+              {children}
+            </div>
+          );
+        };
+
+        // --- 5. 页面主要板块组件 ---
+
+        // Navigation
+        const Navbar = () => {
+          const [activeSection, setActiveSection] = useState('home');
+          const sections = [
+            { id: 'home', label: 'Home' },
+            { id: 'teaser', label: 'Teaser' }, // Keeps original ID for Teaser section
+            { id: 'abstract', label: 'Abstract' },
+            { id: 'introduction', label: 'Introduction' }, // New
+            { id: 'method', label: 'Method' }, // New
+            { id: 'benchmark', label: 'Benchmark' }, // New
+            { id: 'experiments', label: 'Experiments' }, // New
+            { id: 'citation', label: 'Citation' },
+          ];
+          const scrollToSection = (id) => {
+            const element = document.getElementById(id);
+            if (element) {
+              window.scrollTo({ top: element.offsetTop - 80, behavior: 'smooth' });
+              setActiveSection(id);
+            }
+          };
+          return (
+            <nav className="fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-md z-50 border-b border-gray-100 transition-all duration-300">
+              <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between overflow-x-auto">
+                <div 
+                  className="flex items-center gap-2 font-bold text-xl text-gray-900 cursor-pointer group shrink-0 mr-8" 
+                  onClick={() => window.scrollTo({top: 0, behavior: 'smooth'})}
+                >
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-500 to-cyan-400 flex items-center justify-center text-white shadow-md group-hover:scale-110 transition-transform">
+                      R
+                  </div>
+                  <span>RePlan</span>
+                </div>
+
+                <div className="flex items-center gap-1 bg-gray-100/50 p-1 rounded-full border border-gray-200/50 shrink-0">
+                  {sections.map((item) => (
+                    <button
+                      key={item.id}
+                      onClick={() => scrollToSection(item.id)}
+                      className={`
+                        px-3 py-1.5 rounded-full text-sm font-semibold transition-all duration-300
+                        ${activeSection === item.id 
+                          ? 'bg-gray-900 text-white shadow-md' 
+                          : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/50'
+                        }
+                      `}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </nav>
+          );
+        };
+
+        // Header
+        const Header = () => (
+          <header id="home" className="pt-32 pb-16 px-6 text-center max-w-5xl mx-auto">
+            <h1 className="text-3xl md:text-5xl font-extrabold text-gray-900 leading-tight mb-8 tracking-tight uppercase text-gradient">
+              {PROJECT_CONFIG.title}
+            </h1>
+            
+            <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 mb-6 text-lg">
+              {PROJECT_CONFIG.authors.map((author, index) => (
+                <span key={index} className="flex items-start">
+                    <a href={author.url} className="text-blue-600 hover:text-blue-800 hover:underline underline-offset-4 transition-colors">
+                    {author.name}
+                    </a>
+                    <sup className="text-xs text-gray-500 ml-0.5 font-semibold -mt-1">{author.superscripts}</sup>
+                </span>
+              ))}
+            </div>
+
+            <div className="flex flex-wrap justify-center gap-6 text-gray-500 mb-10 text-base">
+              {PROJECT_CONFIG.affiliations.map((aff, index) => (
+                <span key={index} className="flex items-center">
+                    <sup className="mr-1 text-xs text-gray-400 font-semibold">{aff.id}</sup> 
+                    <span>{aff.name}</span>
+                </span>
+              ))}
+            </div>
+
+            <div className="flex flex-wrap justify-center gap-4">
+              {PROJECT_CONFIG.links.map((link, index) => (
+                <Button 
+                  key={index} 
+                  {...link} 
+                  variant={index === 0 ? 'primary' : 'secondary'} 
+                />
+              ))}
+            </div>
+          </header>
+        );
+
+        // Dynamic Teaser (Restored Original Logic)
+        const DynamicTeaser = () => {
+          const [activeExampleIndex, setActiveExampleIndex] = useState(0);
+          const [activeStep, setActiveStep] = useState(0); 
+          const [isHovering, setIsHovering] = useState(false);
+          const autoPlayRef = useRef(null);
+          
+          const [imageLoaded, setImageLoaded] = useState(false);
+          const [realSize, setRealSize] = useState({ width: 512, height: 512 });
+
+          const currentExample = TEASER_EXAMPLES[activeExampleIndex];
+
+          useEffect(() => {
+             setImageLoaded(false);
+             setRealSize({ width: currentExample.width, height: currentExample.height });
+             setActiveStep(0);
+          }, [activeExampleIndex]);
+
+          const { globalInstruction, regions } = useMemo(() => 
+            parsePlanning(currentExample.planning, realSize.width, realSize.height), 
+          [currentExample.planning, realSize.width, realSize.height]);
+
+          useEffect(() => {
+            if (isHovering) return;
+            
+            autoPlayRef.current = setInterval(() => {
+              setActiveStep((prevStep) => {
+                if (prevStep === 2) {
+                   setActiveExampleIndex((prevIndex) => (prevIndex + 1) % TEASER_EXAMPLES.length);
+                   return 0; 
+                }
+                return prevStep + 1;
+              });
+            }, 3000); 
+            
+            return () => clearInterval(autoPlayRef.current);
+          }, [isHovering, activeExampleIndex]);
+
+          const handleImageLoad = (e) => {
+            const { naturalWidth, naturalHeight } = e.target;
+            if (naturalWidth > 0 && naturalHeight > 0) {
+               setRealSize({ width: naturalWidth, height: naturalHeight });
+            }
+            setImageLoaded(true);
+          };
+
+          const steps = [
+            { id: 0, title: "Original Input", icon: <Icons.Image />, desc: "Input & Instruction" },
+            { id: 1, title: "Region Planning", icon: <Icons.Scan />, desc: "Reasoning & BBox" },
+            { id: 2, title: "Edited Result", icon: <Icons.Sparkles />, desc: "Final Output" },
+          ];
+
+          return (
+            <section id="teaser" className="px-6 mb-24 pt-12">
+              <div className="max-w-6xl mx-auto">
+                <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden flex flex-col md:flex-row h-auto md:h-[640px]">
+                  
+                  {/* Left Sidebar Control */}
+                  <div className="w-full md:w-64 shrink-0 bg-gray-50 p-6 flex flex-col justify-center gap-4 border-r border-gray-100 relative z-10">
+                      <div className="mb-2">
+                        <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                          <Icons.Layers className="text-blue-500" />
+                          Process
+                        </h3>
+                        <p className="text-xs text-gray-500 mt-1">Hover steps to visualize</p>
+                      </div>
+
+                      {steps.map((step) => (
+                        <div
+                          key={step.id}
+                          onMouseEnter={() => { setIsHovering(true); setActiveStep(step.id); }}
+                          onMouseLeave={() => setIsHovering(false)}
+                          className={`
+                            relative p-4 rounded-xl cursor-pointer transition-all duration-300 border
+                            ${activeStep === step.id 
+                              ? 'bg-white border-blue-200 shadow-lg scale-105 z-10' 
+                              : 'bg-white/50 border-transparent hover:bg-white hover:border-gray-200'
+                            }
+                          `}
+                        >
+                          {activeStep === step.id && (
+                             <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-blue-500 rounded-l-xl" />
+                          )}
+                          <div className="flex items-center gap-3 ml-2">
+                            <div className={`p-2 rounded-lg ${activeStep === step.id ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'}`}>
+                              {step.icon}
+                            </div>
+                            <div>
+                              <h4 className={`font-bold text-sm ${activeStep === step.id ? 'text-gray-900' : 'text-gray-500'}`}>{step.title}</h4>
+                              <p className="text-xs text-gray-400 truncate w-24">{step.desc}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+
+                  {/* Right Main Viewer */}
+                  <div className="flex-1 bg-white relative flex flex-col items-center justify-center p-6 md:p-10 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px]">
+                    
+                    <div className={`
+                        absolute top-4 left-0 right-0 z-30 flex justify-center px-4 transition-all duration-500 pointer-events-none
+                        ${activeStep === 1 ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'}
+                    `}>
+                        <div className="bg-white/80 backdrop-blur-md px-3 py-2 rounded-xl shadow-lg border border-gray-100 flex flex-col items-center gap-1 max-w-[90%] md:max-w-lg">
+                            <div className="flex items-center gap-1.5 text-orange-500 shrink-0">
+                                <Icons.Scan size={14} />
+                                <span className="text-[10px] font-bold uppercase tracking-wider">Global Hint</span>
+                            </div>
+                            <span className="text-xs font-mono font-medium text-gray-700 text-center leading-relaxed whitespace-normal break-words">
+                                {globalInstruction}
+                            </span>
+                        </div>
+                    </div>
+
+                    <AspectRatioContainer 
+                       width={realSize.width} 
+                       height={realSize.height} 
+                       isLoading={!imageLoaded}
+                    >
+                        {/* 1. CLIPPED LAYER: 图片层 (负责圆角裁切和隐藏溢出) */}
+                        <div className="absolute inset-0 rounded-xl overflow-hidden z-0">
+                            <div className={`absolute inset-0 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 bg-[length:200%_100%] animate-[pulse_2s_infinite] ${!imageLoaded ? 'opacity-100 z-20' : 'opacity-0 -z-10 transition-opacity duration-500'}`} />
+
+                            <img 
+                                src={currentExample.img_input} 
+                                className={`absolute inset-0 w-full h-full object-cover z-0 transition-opacity duration-700 ease-in-out ${activeStep !== 2 ? 'opacity-100' : 'opacity-0'}`}
+                                alt="Input Visual"
+                                onLoad={handleImageLoad}
+                            />
+
+                            <img 
+                                src={currentExample.img_result} 
+                                className={`absolute inset-0 w-full h-full object-cover z-0 transition-opacity duration-700 ease-in-out ${activeStep === 2 ? 'opacity-100' : 'opacity-0'}`}
+                                alt="Result Visual"
+                            />
+
+                            <div className={`absolute inset-0 transition-opacity duration-500 flex flex-col items-center justify-center pointer-events-none ${activeStep === 0 ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}>
+                                <div className="flex flex-col items-center gap-4 p-8 text-center h-full justify-center">
+                                <div className="bg-white/90 backdrop-blur-md p-5 rounded-2xl shadow-xl border border-white/50 max-w-sm transform translate-y-0 transition-transform">
+                                    <span className="text-xs font-extrabold text-blue-600 uppercase tracking-widest block mb-2">User Instruction</span>
+                                    <p className="text-gray-800 font-medium text-lg leading-snug">"{currentExample.instruction}"</p>
+                                </div>
+                                </div>
+                            </div>
+                            
+                            <div className={`absolute inset-0 transition-opacity duration-500 flex flex-col items-center justify-center pointer-events-none ${activeStep === 2 ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}>
+                               <div className="relative w-full h-full flex flex-col items-center justify-center">
+                                  <div className="absolute bottom-4 right-4 bg-white/90 backdrop-blur-sm px-4 py-1.5 rounded-full shadow-lg border border-blue-100 flex items-center gap-2 animate-bounce">
+                                     <Icons.Sparkles size={14} className="text-blue-500" />
+                                     <span className="text-blue-600 font-bold text-xs">Edit Complete</span>
+                                  </div>
+                               </div>
+                            </div>
+                        </div>
+
+                        {/* 2. OVERFLOW LAYER: 标签层 (允许溢出，不裁切) */}
+                        <div className={`absolute inset-0 transition-opacity duration-500 z-10 pointer-events-none ${activeStep === 1 ? 'opacity-100' : 'opacity-0'}`}>
+                            {regions.map((region) => {
+                                const isWide = region.raw.widthPercent > 30;
+                                const alignClass = 
+                                    region.hAlign === 'left' ? 'left-0' :
+                                    region.hAlign === 'right' ? 'right-0' :
+                                    'left-0'; 
+
+                                let translateX = '0%';
+                                if (region.hAlign === 'center') translateX = '-50%';
+
+                                const stackOffset = region.level * 110; 
+                                const translateY = region.labelPos === 'top' ? `-${stackOffset}%` : `${stackOffset}%`;
+
+                                const transformStyle = {
+                                    transform: `translate(${translateX}, ${translateY})`
+                                };
+
+                                return (
+                                    <div 
+                                      key={region.id}
+                                      className={`
+                                        absolute border-2 flex items-start justify-start animate-pulse-slow transition-all duration-300
+                                        ${region.theme.border} 
+                                        ${region.theme.bg}
+                                        ${region.isKeep ? '' : 'shadow-lg'}
+                                      `}
+                                      style={region.style}
+                                    >
+                                      <div 
+                                        className={`
+                                          hidden md:flex items-center justify-center
+                                          absolute px-2 py-1 rounded-md shadow-sm whitespace-normal z-50 transition-transform duration-300
+                                          ${region.theme.text} ${region.theme.label}
+                                          w-max
+                                          ${isWide ? 'max-w-[300px]' : 'max-w-[160px]'}
+                                          ${region.labelPos === 'bottom' ? 'top-full mt-1' : 'bottom-full mb-1'}
+                                          ${alignClass}
+                                        `}
+                                        style={transformStyle}
+                                      >
+                                          <span className="text-xs font-bold text-center leading-snug">
+                                            {region.hint}
+                                          </span>
+                                      </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </AspectRatioContainer>
+
+                  </div>
+                </div>
+
+                {/* Example Selector */}
+                <div className="mt-10 max-w-[620px] mx-auto">
+                   <div className="flex items-center justify-center gap-4 mb-6">
+                      <div className="h-px bg-gray-200 w-12 md:w-24"></div>
+                      <span className="text-xs font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
+                        More Examples
+                      </span>
+                      <div className="h-px bg-gray-200 w-12 md:w-24"></div>
+                   </div>
+                   
+                   <div className="flex flex-wrap justify-center gap-4 px-2">
+                      {TEASER_EXAMPLES.map((ex, idx) => (
+                          <button
+                           key={ex.id}
+                           onClick={() => setActiveExampleIndex(idx)}
+                           className={`
+                             group flex flex-col items-center gap-3 transition-all duration-300
+                             ${activeExampleIndex === idx ? 'opacity-100 scale-105' : 'opacity-60 hover:opacity-100'}
+                           `}
+                          >
+                           <div className={`
+                             w-20 h-20 rounded-xl overflow-hidden border-2 shadow-sm transition-all relative
+                             ${activeExampleIndex === idx ? 'border-gray-900 ring-2 ring-gray-100 ring-offset-2' : 'border-gray-200 group-hover:border-gray-400'}
+                           `}>
+                             <img src={ex.img_input} className="w-full h-full object-cover" />
+                           </div>
+                           <span className={`text-[10px] font-bold uppercase tracking-wider text-center max-w-[80px] leading-tight ${activeExampleIndex === idx ? 'text-gray-900' : 'text-gray-400'}`}>
+                             {ex.title}
+                           </span>
+                          </button>
+                      ))}
+                   </div>
+                </div>
+
+              </div>
+            </section>
+          );
+        };
+
+        const Abstract = () => (
+          <section id="abstract" className="px-6 mb-24 pt-20 max-w-4xl mx-auto">
+            <SectionHeader title="Abstract" />
+            <div className="bg-gray-50 p-8 rounded-2xl border border-gray-100 text-lg leading-relaxed text-gray-700 text-justify shadow-sm relative overflow-hidden">
+              {PROJECT_CONFIG.abstract}
+            </div>
+          </section>
+        );
+
+        // --- NEW SECTIONS ---
+
+        // Extracted ImageCard Component for ComparisonGallery
+        const ImageCard = ({ src, label, onLoadHandler, realSize, imageLoaded }) => {
+            const [hasError, setHasError] = useState(false);
+
+            useEffect(() => {
+                setHasError(false);
+            }, [src]);
+
+            return (
+                <div className="flex flex-col gap-3">
+                    <div 
+                        className="relative w-full h-64 rounded-xl overflow-hidden bg-gray-50 border border-gray-200 shadow-sm transition-shadow duration-300 hover:shadow-md"
+                    >
+                        {/* Pulse loader */}
+                        {!imageLoaded && !hasError && <div className="absolute inset-0 bg-gray-200 animate-pulse z-10" />}
+                        
+                        {!hasError ? (
+                            <img 
+                                src={src} 
+                                className={`w-full h-full object-contain transition-opacity duration-500 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+                                onLoad={onLoadHandler}
+                                onError={() => setHasError(true)}
+                            />
+                        ) : (
+                            <div className="flex items-center justify-center h-full text-xs text-gray-400 font-mono text-center p-2 bg-gray-50">
+                                Image Missing
+                            </div>
+                        )}
+                    </div>
+                    <div className="text-center">
+                          <span className="text-sm font-bold text-gray-700 bg-gray-100/50 px-3 py-1 rounded-full border border-gray-100">
+                             {label}
+                          </span>
+                    </div>
+                </div>
+            );
+        };
+
+        // 新增组件：滚动对比展示 (Comparison Gallery) - Interactive Version
+        const ComparisonGallery = () => {
+            const examples = [
+                { 
+                    id: 1, 
+                    title: "Ambiguous Target", 
+                    baseline: "Flux.1 Kontext", 
+                    instruction: "Replace the cup that has been used and left on the desk with a small potted plant",
+                    imgs: ["assets/comparative_examples_intro/cup/original.png", "assets/comparative_examples_intro/cup/kontext_pro.jpeg", "assets/comparative_examples_intro/cup/final_result.png"] 
+                },
+                { 
+                    id: 2, 
+                    title: "Semantic Spillover", 
+                    baseline: "Flux.1 Kontext", 
+                    instruction: "Find the woman with light blue backpack and change the color of her shoes to red",
+                    imgs: ["assets/comparative_examples_intro/crowd/original.png", "assets/comparative_examples_intro/crowd/kontext_pro.jpeg", "assets/comparative_examples_intro/crowd/final_result.png"] 
+                },
+                { 
+                    id: 3, 
+                    title: "Pixel & Style Consistency", 
+                    baseline: "Qwen-Image-Edit",
+                    instruction: "Replace the individual whose attire suggests a greater emphasis on thermal insulation for cold weather with a snowman.",
+                    imgs: ["assets/comparative_examples_intro/snowman/original.png", "assets/comparative_examples_intro/snowman/qwen.png", "assets/comparative_examples_intro/snowman/final_result.png"] 
+                },
+                { 
+                    id: 4, 
+                    title: "Local Text", 
+                    baseline: "Qwen-Image-Edit",
+                    instruction: "Change the color of the word on the fifth line of the main title to blue.",
+                    imgs: ["assets/comparative_examples_intro/poster/original.png", "assets/comparative_examples_intro/poster/qwen.png", "assets/comparative_examples_intro/poster/final_result.png"] 
+                },
+            ];
+
+            const [activeIndex, setActiveIndex] = useState(0);
+            const [realSize, setRealSize] = useState({ width: 512, height: 512 }); 
+            const [imageLoaded, setImageLoaded] = useState(false);
+            const [isHovering, setIsHovering] = useState(false);
+
+            const currentExample = examples[activeIndex];
+
+            // Auto-play logic
+            useEffect(() => {
+                if (isHovering) return;
+                const interval = setInterval(() => {
+                    setActiveIndex((prev) => (prev + 1) % examples.length);
+                }, 3000); // 3秒切换一次
+                return () => clearInterval(interval);
+            }, [isHovering, examples.length]);
+
+            useEffect(() => {
+                setImageLoaded(false);
+                setRealSize({ width: 512, height: 512 });
+            }, [activeIndex]);
+
+            const handleImageLoad = (e) => {
+                const { naturalWidth, naturalHeight } = e.target;
+                if (naturalWidth > 0 && naturalHeight > 0) {
+                    setRealSize({ width: naturalWidth, height: naturalHeight });
+                    setImageLoaded(true);
+                }
+            };
+
+            return (
+                <div 
+                    className="w-full mt-16 bg-white rounded-3xl border border-gray-100 shadow-xl overflow-hidden"
+                    onMouseEnter={() => setIsHovering(true)}
+                    onMouseLeave={() => setIsHovering(false)}
+                >
+                    {/* Header */}
+                    <div className="p-4 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center relative overflow-hidden">
+                        <h5 className="text-sm font-bold text-gray-900 flex items-center gap-2 relative z-10">
+                            <Icons.Scan size={16} className="text-blue-600" />
+                            Qualitative Comparison
+                        </h5>
+                        
+                        {/* Progress Bar (Visible only when auto-playing) */}
+                        {!isHovering && (
+                            <div className="absolute bottom-0 left-0 h-0.5 bg-blue-500/30 animate-progress z-0"></div>
+                        )}
+
+                        <div className="flex gap-1 relative z-10">
+                            {examples.map((_, idx) => (
+                                <div key={idx} className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${idx === activeIndex ? 'bg-blue-600 scale-125' : 'bg-gray-300'}`} />
+                            ))}
+                        </div>
+                    </div>
+                    
+                    <div className="p-6 md:p-10 bg-gray-50/30">
+                        
+                        {/* Instruction */}
+                        <div className="flex justify-center mb-10">
+                             <div className="bg-white px-6 py-3 rounded-2xl shadow-sm border border-gray-200 flex items-center gap-3 max-w-2xl transform hover:scale-105 transition-transform duration-300">
+                                 <div className="bg-blue-50 p-2 rounded-xl text-blue-600">
+                                     <Icons.FileText size={18} />
+                                 </div>
+                                 <span className="text-base font-medium text-gray-700">
+                                     <span className="font-bold text-gray-900 mr-2">Instruction:</span> 
+                                     "{currentExample.instruction}"
+                                 </span>
+                             </div>
+                        </div>
+
+                        {/* Three Images Layout (Separated with gap) */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 mb-10">
+                             <ImageCard 
+                                 src={currentExample.imgs[0]} 
+                                 label="Original Input" 
+                                 onLoadHandler={handleImageLoad}
+                                 realSize={realSize}
+                                 imageLoaded={imageLoaded}
+                             />
+                             <ImageCard 
+                                 src={currentExample.imgs[1]} 
+                                 label={currentExample.baseline} 
+                                 realSize={realSize}
+                                 imageLoaded={imageLoaded}
+                             />
+                             <ImageCard 
+                                 src={currentExample.imgs[2]} 
+                                 label="RePlan (Ours)"
+                                 realSize={realSize}
+                                 imageLoaded={imageLoaded}
+                             />
+                        </div>
+
+                        {/* Thumbnails */}
+                        <div className="flex justify-center gap-3 md:gap-4 overflow-x-auto py-2 scrollbar-hide px-4">
+                            {examples.map((ex, idx) => (
+                                <button 
+                                    key={idx}
+                                    onClick={() => setActiveIndex(idx)}
+                                    className={`
+                                        group flex flex-col items-center gap-3 transition-all duration-300 shrink-0
+                                        ${activeIndex === idx ? 'opacity-100 scale-105' : 'opacity-60 hover:opacity-100'}
+                                    `}
+                                >
+                                    <div className={`
+                                        relative w-20 h-20 rounded-xl overflow-hidden border-2 transition-all 
+                                        ${activeIndex === idx 
+                                            ? 'border-gray-900 ring-2 ring-gray-100 ring-offset-2' 
+                                            : 'border-gray-200 group-hover:border-gray-400'}
+                                    `}>
+                                        <img src={ex.imgs[0]} className="w-full h-full object-cover" />
+                                    </div>
+                                    <span className={`text-[10px] font-bold uppercase tracking-wider text-center max-w-[80px] leading-tight ${activeIndex === idx ? 'text-gray-900' : 'text-gray-400'}`}>
+                                        {ex.title}
+                                    </span>
+                                </button>
+                            ))}
+                        </div>
+                        
+                    </div>
+                </div>
+            );
+        };
+
+        // 1. Introduction (Updated with Rephrased Gap & Interactive Gallery)
+        const Introduction = () => (
+            <section id="introduction" className="px-6 mb-24 max-w-6xl mx-auto">
+                <SectionHeader title="Introduction" subtitle="From Global Semantics to Precise Region Planning" />
+                
+                {/* Part 1: The Challenge & The Gap */}
+                <div className="grid md:grid-cols-2 gap-12 mb-10">
+                    <div className="space-y-6">
+                        <h3 className="text-2xl font-bold text-gray-900">The Challenge: IV-Complexity</h3>
+                        <p className="text-gray-600 text-lg leading-relaxed">
+                            Instruction-based image editing has evolved significantly, but current models still struggle with <strong className="text-gray-900">Instruction-Visual Complexity (IV-Complexity)</strong>.
+                        </p>
+                        <p className="text-gray-600 text-lg leading-relaxed">
+                            This challenge arises when intricate instructions (e.g., "replace the used cup") meet cluttered, realistic scenes. In these scenarios, general global context is not enough to distinguish the correct target from similar objects.
+                        </p>
+                        
+                        {/* Motivation Image */}
+                        <div className="flex justify-center mt-8 w-full">
+                            <div className="rounded-2xl overflow-hidden shadow-lg border border-gray-100 group relative inline-block">
+                                <div className="relative">
+                                    <img 
+                                        src="assets/cup.png" 
+                                        alt="Motivation Figure" 
+                                        className="h-auto max-h-[250px] w-auto max-w-full object-contain transition-transform duration-500 group-hover:scale-105 block"
+                                        onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
+                                    />
+                                    <div className="hidden bg-gray-100 p-8 items-center justify-center min-w-[300px] min-h-[200px] text-center">
+                                        <div>
+                                            <div className="text-4xl mb-2">🖼️</div>
+                                            <p className="text-gray-500 font-mono text-sm">Image not found:<br/>assets/intro_teaser.png</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div className="bg-gray-50 rounded-2xl p-8 border border-gray-100 flex flex-col justify-between shadow-inner">
+                        <div>
+                            <h3 className="text-2xl font-bold text-gray-900 mb-6">The Gap: Limitations of Global Semantic Guidance</h3>
+                            <p className="text-gray-600 mb-6 text-sm leading-relaxed">
+                                Existing methods, whether relying on standard text encoders (like Flux.1 Kontext with T5) or unified architectures (like Qwen-Image with VLM as encoder), share a critical limitation: they rely on <span className="font-semibold text-orange-600">Global Semantic Guidance</span>.
+                            </p>
+                            
+                            <div className="space-y-6">
+                                <div className="flex gap-4 items-start bg-white p-4 rounded-xl border border-gray-200/50 shadow-sm">
+                                    <div className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center shrink-0 text-red-500 font-bold text-sm border border-red-100">✕</div>
+                                    <div>
+                                        <h4 className="font-bold text-gray-900 text-sm mb-1">The Problem</h4>
+                                        <p className="text-xs text-gray-600 leading-relaxed">
+                                            Regardless of the encoder strength, these models compress instructions into global feature vectors. They function as coarse, high-level semantic encoders without explicit spatial grounding.
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="flex gap-4 items-start bg-white p-4 rounded-xl border border-gray-200/50 shadow-sm">
+                                    <div className="w-8 h-8 rounded-full bg-orange-50 flex items-center justify-center shrink-0 text-orange-500 font-bold text-sm border border-orange-100">!</div>
+                                    <div>
+                                        <h4 className="font-bold text-gray-900 text-sm mb-1">The Result</h4>
+                                        <p className="text-xs text-gray-600 leading-relaxed">
+                                            Without precise spatial constraints, edits often "spill over" into unrelated areas or modify the wrong targets (e.g., editing all cups instead of just the specific one), failing to preserve background consistency.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Part 1.5: Interactive Comparison Gallery (New) */}
+                <ComparisonGallery />
+
+                {/* Part 2: Our Solution (RePlan) */}
+                <div className="mt-24 mb-12 text-center max-w-3xl mx-auto">
+                    <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-1.5 rounded-full font-bold text-sm mb-4 border border-blue-100 shadow-sm">
+                        <Icons.Target size={16} /> Our Solution
+                    </div>
+                    <h3 className="text-3xl font-bold text-gray-900 mb-4 tracking-tight">Region-Aligned Guidance via RePlan</h3>
+                    <p className="text-gray-600 text-lg">
+                        We introduce RePlan, a framework that shifts the paradigm from global semantics to <strong>Region-Aligned Guidance</strong>.
+                    </p>
+                </div>
+
+                {/* Part 3: Contributions Boxes (UPDATED WITH 5th BOX) */}
+                <div className="grid md:grid-cols-2 gap-6">
+                    {[
+                        {
+                            title: "Plan-then-Execute Framework",
+                            icon: <Icons.Layers className="text-blue-500" />,
+                            content: "We decouple editing into planning and execution. A VLM planner performs Chain-of-Thought reasoning to decompose complex instructions into structured, region-specific guidance (bounding boxes and local hints), explicitly linking text to pixels."
+                        },
+                        {
+                            title: "Efficient GRPO Training",
+                            icon: <Icons.Brain className="text-purple-500" />,
+                            content: "We enhance the planner's reasoning capabilities using Group Relative Policy Optimization (GRPO). Remarkably, this achieves state-of-the-art planning performance using only ~1k instruction-only samples, without requiring large-scale paired image datasets."
+                        },
+                        {
+                            title: "Training-Free Attention Injection",
+                            icon: <Icons.Sparkles className="text-amber-500" />,
+                            content: "To execute the plan, we design a training-free attention mechanism tailored for Multimodal DiT (MMDiT). This enables precise, multi-region edits in a single pass while strictly preserving the background."
+                        },
+                        {
+                            title: "IV-Edit Benchmark",
+                            icon: <Icons.Database className="text-emerald-500" />,
+                            content: "To foster future research, we establish IV-Edit, the first benchmark specifically designed to evaluate instruction-visual complexity, focusing on fine-grained grounding and knowledge-intensive reasoning."
+                        },
+                        {
+                            title: "Interactive & Flexible Editing",
+                            icon: <Icons.Sliders className="text-pink-500" />,
+                            content: "RePlan's intermediate region guidance is editable, enabling user-in-the-loop intervention. Furthermore, our training-free attention injection operates independently, equipping MMDiT-based editors with capabilities for multi-region parallel editing and regional negative prompts."
+                        }
+                    ].map((item, idx) => (
+                        <div 
+                          key={idx} 
+                          className={`
+                            bg-white p-6 rounded-xl shadow-md border border-gray-100 hover:shadow-lg transition-shadow text-center
+                            ${idx === 4 ? 'md:col-span-2 md:w-1/2 md:mx-auto' : ''}
+                          `}
+                        >
+                            <div className="flex items-center justify-center gap-3 mb-4">
+                                <div className="p-2 bg-gray-50 rounded-lg border border-gray-100 shrink-0">
+                                    {item.icon}
+                                </div>
+                                <h4 className="font-bold text-lg text-gray-900">{item.title}</h4>
+                            </div>
+                            <p className="text-gray-600 leading-relaxed text-sm">
+                                {item.content}
+                            </p>
+                        </div>
+                    ))}
+                </div>
+
+            </section>
+        );
+
+        // 2. Method
+        const Method = () => (
+            <section id="method" className="px-6 mb-24 max-w-6xl mx-auto">
+                <SectionHeader title="Method" subtitle="A modular framework separating reasoning from generation" />
+                
+                <div className="mb-12 rounded-3xl overflow-hidden shadow-2xl border border-gray-100">
+                      <div className="relative w-full">
+                          <img 
+                            src="assets/method.jpg" 
+                            alt="RePlan Architecture" 
+                            className="w-full h-auto"
+                            onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
+                          />
+                          <div className="hidden bg-white p-12 items-center justify-center min-h-[400px] border border-dashed border-gray-300 text-center flex-col">
+                            <div className="text-blue-500 mb-4 mx-auto w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center">
+                                <Icons.Layers />
+                            </div>
+                            <h3 className="text-xl font-bold text-gray-900">Architecture Diagram</h3>
+                            <p className="text-gray-500 mt-2">Please place <code>method_architecture.png</code> in your assets folder</p>
+                          </div>
+                      </div>
+                </div>
+
+                <div className="bg-gray-50 rounded-2xl p-8 border border-gray-100 text-lg leading-relaxed text-gray-700 text-justify shadow-sm">
+                    <p>
+                      The bottom part of the figure shows the overall architecture. Given an input image and text instruction, (1) the VLM analyzes them via chain-of-thought reasoning (2) and produces region-aligned guidance, where each guidance includes a region bbox and its editing hint. (3) Each hint is further encoded by a text encoder into a feature token, while image patch tokens are obtained by VAE encoding and grouped according to the region bounding boxes. (4) A training-free group-specific attention mechanism is proposed to allow MMDiT to generate the final edited image. The top part of the figure presents an editing examples.
+                    </p>
+                </div>
+            </section>
+        );
+
+        // 3. Benchmark
+        const Benchmark = () => (
+            <section id="benchmark" className="px-6 mb-24 max-w-6xl mx-auto">
+                <SectionHeader title="IV-Edit Benchmark" subtitle="Evaluating Instruction-Visual Complexity" />
+                
+                {/* 1. Original Intro & Stats */}
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden mb-12">
+                    <div className="grid md:grid-cols-2">
+                        <div className="p-8 border-b md:border-b-0 md:border-r border-gray-100">
+                             <h3 className="text-xl font-bold mb-4">Why a new benchmark?</h3>
+                             <p className="text-gray-600 mb-4">Existing datasets mostly focus on subject-dominated images or simple instructions. <strong>IV-Edit</strong> is designed to test:</p>
+                             <ul className="space-y-3">
+                                {[
+                                    "Fine-grained visual referring",
+                                    "Multi-region editing",
+                                    "Knowledge-based reasoning",
+                                ].map((item, i) => (
+                                    <li key={i} className="flex items-center gap-2 text-sm text-gray-700">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div> {item}
+                                    </li>
+                                ))}
+                             </ul>
+                        </div>
+                        <div className="p-8 bg-gray-50 flex flex-col justify-center">
+                            <div className="grid grid-cols-2 gap-4">
+                                {[
+                                    { label: "Images", val: "800+" },
+                                    { label: "Referring Types", val: "7" },
+                                    { label: "Task Types", val: "16" },
+                                    { label: "Metrics", val: "MLLM" }
+                                ].map((stat, i) => (
+                                    <div key={i} className="bg-white p-4 rounded-xl shadow-sm text-center">
+                                        <div className="text-2xl font-black text-gray-900">{stat.val}</div>
+                                        <div className="text-xs text-gray-400 uppercase tracking-wide font-bold">{stat.label}</div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* 2. Benchmark Gallery */}
+                <div className="mb-12">
+                      <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                        <Icons.Image className="text-blue-500"/> Benchmark Gallery
+                      </h3>
+                      <div className="bg-gray-100 rounded-2xl border border-gray-200 overflow-hidden shadow-md relative">
+                          <img 
+                            src="assets/benchmark.jpg" 
+                            alt="Benchmark Cases" 
+                            className="w-full h-auto"
+                            onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
+                          />
+                          <div className="hidden flex items-center justify-center h-96 bg-gray-50 text-gray-400 flex-col text-center p-8">
+                            <p className="font-bold">Benchmark Case Gallery (Large Image Placeholder)</p>
+                            <p className="text-xs mt-2 font-mono">Place 'benchmark_cases_large.png' here</p>
+                          </div>
+                      </div>
+                </div>
+
+                {/* 3. Statistics Charts */}
+                <div>
+                    <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                        <Icons.Database className="text-purple-500"/> Dataset Statistics
+                      </h3>
+                    <div className="grid md:grid-cols-2 gap-8">
+                        {/* Chart 1: Referring Types */}
+                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                            <h4 className="text-lg font-bold text-gray-800 mb-4 text-center">Referring Types</h4>
+                            <div className="aspect-square bg-gray-50 rounded-xl flex items-center justify-center border border-dashed border-gray-200 relative overflow-hidden">
+                                <img 
+                                    src="assets/referring.jpg" 
+                                    alt="Referring Types Chart" 
+                                    className="w-full h-full object-contain"
+                                    onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
+                                />
+                                <div className="hidden flex items-center justify-center w-full h-full text-center text-gray-400">
+                                    <p>Referring Chart Placeholder</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        {/* Chart 2: Task Types */}
+                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                            <h4 className="text-lg font-bold text-gray-800 mb-4 text-center">Task Types</h4>
+                            <div className="aspect-square bg-gray-50 rounded-xl flex items-center justify-center border border-dashed border-gray-200 relative overflow-hidden">
+                                 <img 
+                                    src="assets/task.jpg" 
+                                    alt="Task Types Chart" 
+                                    className="w-full h-full object-contain"
+                                    onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
+                                />
+                                <div className="hidden flex items-center justify-center w-full h-full text-center text-gray-400">
+                                    <p>Task Chart Placeholder</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        );
+
+        // 4. Experiments
+        const Experiments = () => {
+            const data = [
+                { 
+                    group: "proprietary",
+                    model: "Gemini-Flash-Image", 
+                    quality: "3.89", target: "4.11", effect: "3.93", consistency: "2.89", overall: "3.71", weighted: "3.44"
+                },
+                { 
+                    group: "proprietary",
+                    model: "GPT-4o", 
+                    quality: "3.61", target: "4.02", effect: "3.78", consistency: "1.77", overall: "3.30", weighted: "3.07"
+                },
+                { divider: true },
+                { 
+                    group: "opensource",
+                    model: "InstructPix2Pix", 
+                    quality: "2.47", target: "2.47", effect: "1.90", consistency: "1.40", overall: "2.06", weighted: "1.48" 
+                },
+                { 
+                    group: "opensource",
+                    model: "Uniworld-V1", 
+                    quality: "3.26", target: "2.89", effect: "2.18", consistency: "1.46", overall: "2.45", weighted: "1.84" 
+                },
+                { 
+                    group: "opensource",
+                    model: "Bagel-Think", 
+                    quality: "3.44", target: "3.47", effect: "2.93", consistency: "2.33", overall: "3.05", weighted: "2.46" 
+                },
+                { 
+                    group: "opensource",
+                    model: "Qwen-Image", 
+                    quality: "3.47", target: {val: "3.72", underline: true}, effect: {val: "3.24", bold: true}, consistency: "1.79", overall: "3.05", weighted: {val: "2.62", underline: true}
+                },
+                { 
+                    group: "opensource",
+                    model: "Flux.1 Kontext Dev", 
+                    quality: {val: "3.93", underline: true}, target: "3.34", effect: "2.73", consistency: "2.88", overall: "3.22", weighted: "2.49" 
+                },
+                { 
+                    group: "ours",
+                    model: "RePlan (Flux.1 Kontext)", 
+                    quality: {val: "4.16", bold: true}, target: "3.47", effect: "2.59", consistency: {val: "3.64", bold: true}, overall: {val: "3.46", underline: true}, weighted: "2.55", 
+                    highlightRow: true 
+                },
+                { 
+                    group: "ours",
+                    model: "RePlan (Qwen-Image)", 
+                    quality: "3.86", target: {val: "3.77", bold: true}, effect: {val: "3.16", underline: true}, consistency: {val: "3.24", underline: true}, overall: {val: "3.51", bold: true}, weighted: {val: "2.91", bold: true}, 
+                    highlightRow: true 
+                },
+            ];
+
+            const renderCell = (content) => {
+                if (typeof content === 'object') {
+                    return (
+                        <span className={`
+                            ${content.bold ? 'font-black text-gray-900' : ''} 
+                            ${content.underline ? 'underline decoration-2 underline-offset-4 decoration-gray-400' : ''}
+                        `}>
+                            {content.val}
+                        </span>
+                    );
+                }
+                return content;
+            };
+
+            const extraImages = [
+              "assets/more_comparative/1.jpg",
+              "assets/more_comparative/3.jpg",
+              "assets/more_comparative/4.jpg",
+              "assets/more_comparative/2.jpg",
+            ];
+
+            const [currentExtraIndex, setCurrentExtraIndex] = useState(0);
+            const [imgError, setImgError] = useState(false);
+
+            const nextImage = () => {
+                setCurrentExtraIndex((prev) => (prev + 1) % extraImages.length);
+            };
+
+            const prevImage = () => {
+                setCurrentExtraIndex((prev) => (prev - 1 + extraImages.length) % extraImages.length);
+            };
+
+            useEffect(() => {
+                setImgError(false);
+            }, [currentExtraIndex]);
+
+            return (
+                <section id="experiments" className="px-6 mb-24 max-w-6xl mx-auto">
+                    <SectionHeader title="Experiments" subtitle="Quantitative Performance on IV-Edit" />
+                    
+                    {/* Main Table */}
+                    <div className="overflow-x-auto bg-white rounded-2xl shadow-md border border-gray-100 mb-12">
+                        <table className="w-full text-left border-collapse min-w-[800px]">
+                            <thead>
+                                <tr className="bg-gray-50 border-b border-gray-200 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                                    <th className="px-6 py-4">Model</th>
+                                    <th className="px-4 py-4">Quality ↑</th>
+                                    <th className="px-4 py-4">Target ↑</th>
+                                    <th className="px-4 py-4">Effect ↑</th>
+                                    <th className="px-4 py-4">Consistency ↑</th>
+                                    <th className="px-4 py-4">Overall ↑</th>
+                                    <th className="px-4 py-4 bg-gray-100/50">Weighted ↑</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100 text-sm">
+                                {data.map((row, i) => {
+                                    if (row.divider) {
+                                        return (
+                                            <tr key={i} className="bg-gray-50/50 border-y-2 border-gray-100">
+                                                <td colSpan="7" className="h-2"></td>
+                                            </tr>
+                                        );
+                                    }
+                                    return (
+                                        <tr key={i} className={`
+                                            hover:bg-blue-50/30 transition-colors 
+                                            ${row.highlightRow ? 'bg-blue-50/30' : ''}
+                                            ${row.group === 'proprietary' ? 'text-gray-500 italic bg-gray-50/20' : ''}
+                                        `}>
+                                            <td className={`px-6 py-4 font-medium ${row.highlightRow ? 'text-blue-700 font-bold' : 'text-gray-900'}`}>
+                                                {row.model}
+                                            </td>
+                                            <td className="px-4 py-4 text-gray-600 font-mono">{renderCell(row.quality)}</td>
+                                            <td className="px-4 py-4 text-gray-600 font-mono">{renderCell(row.target)}</td>
+                                            <td className="px-4 py-4 text-gray-600 font-mono">{renderCell(row.effect)}</td>
+                                            <td className="px-4 py-4 text-gray-600 font-mono">{renderCell(row.consistency)}</td>
+                                            <td className="px-4 py-4 text-gray-600 font-mono">{renderCell(row.overall)}</td>
+                                            <td className="px-4 py-4 text-gray-800 font-mono font-medium bg-gray-50/50">{renderCell(row.weighted)}</td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                        
+                        <div className="px-6 py-4 bg-gray-50/50 border-t border-gray-100">
+                            <p className="text-xs text-gray-400 leading-relaxed text-left">
+                                * <strong>Bold</strong> indicates the best performance, and <span className="underline decoration-gray-400 underline-offset-2">underline</span> indicates the second best among open-source models. 
+                                Top section (gray background) lists proprietary closed-source models for reference.
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* Additional Qualitative Results Carousel */}
+                    <div>
+                          <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                            <Icons.Layers className="text-blue-500"/> More Qualitative Results
+                          </h3>
+                          
+                          <div className="relative group bg-gray-50 rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
+                            <div className="w-full flex items-center justify-center bg-gray-100 min-h-[300px]">
+                                {!imgError ? (
+                                    <img 
+                                        key={currentExtraIndex}
+                                        src={extraImages[currentExtraIndex]} 
+                                        alt={`Comparative result ${currentExtraIndex + 1}`} 
+                                        className="w-full h-auto object-contain animate-[pulse_0.5s_ease-in-out]"
+                                        onError={() => setImgError(true)}
+                                    />
+                                ) : (
+                                    <div className="text-center text-gray-400 p-12">
+                                        <p className="font-bold mb-2">Result {currentExtraIndex + 1}</p>
+                                        <p className="text-xs font-mono">assets/extra_comparisons/comp{currentExtraIndex + 1}.png</p>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Navigation Controls */}
+                            <button 
+                                onClick={prevImage}
+                                className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white p-3 rounded-full shadow-lg text-gray-800 transition-all hover:scale-110 z-10 backdrop-blur-sm"
+                                aria-label="Previous image"
+                            >
+                                <Icons.ChevronLeft />
+                            </button>
+                            <button 
+                                onClick={nextImage}
+                                className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white p-3 rounded-full shadow-lg text-gray-800 transition-all hover:scale-110 z-10 backdrop-blur-sm"
+                                aria-label="Next image"
+                            >
+                                <Icons.ChevronRight />
+                            </button>
+
+                            {/* Indicators */}
+                            <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2 pointer-events-none">
+                                {extraImages.map((_, idx) => (
+                                    <div 
+                                        key={idx} 
+                                        className={`
+                                            w-2 h-2 rounded-full transition-all duration-300 shadow-sm
+                                            ${idx === currentExtraIndex ? 'bg-blue-600 scale-125 w-4' : 'bg-white/80 backdrop-blur-sm'}
+                                        `} 
+                                    />
+                                ))}
+                            </div>
+                          </div>
+                          <p className="text-center text-xs text-gray-400 mt-3">
+                            Example {currentExtraIndex + 1} of {extraImages.length}
+                          </p>
+                    </div>
+                </section>
+            );
+        };
+
+        const Citation = () => {
+          const [copied, setCopied] = useState(false);
+          const bibtex = `@article{qu2025replan,
+          title={RePlan: Reasoning-Guided Region Planning for Complex Instruction-Based Image Editing},
+          author={Qu, Tianyuan and Ke, Lei and Zhan, Xiaohang and Tang, Longxiang and Liu, Yuqi and Peng, Bohao and Yu, Bei and Yu, Dong and Jia, Jiaya},
+          journal={arXiv preprint},
+          year={2025}
+        }`;
+
+          const handleCopy = () => {
+            navigator.clipboard.writeText(bibtex);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+          };
+
+          return (
+            <section id="citation" className="px-6 mb-24 pt-20 max-w-4xl mx-auto">
+              <SectionHeader title="Citation" />
+              <div className="relative group">
+                <pre className="bg-gray-900 text-gray-300 p-6 rounded-xl overflow-x-auto text-sm font-mono leading-relaxed shadow-inner">
+                  {bibtex}
+                </pre>
+                <button 
+                  onClick={handleCopy}
+                  className="absolute top-4 right-4 p-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors shadow-lg opacity-0 group-hover:opacity-100"
+                  title="Copy BibTeX"
+                >
+                  {copied ? <Icons.Check size={18} className="text-green-400" /> : <Icons.Copy size={18} />}
+                </button>
+              </div>
+            </section>
+          );
+        };
+
+        const Footer = () => (
+          <footer className="bg-gray-50 py-12 border-t border-gray-200">
+            <div className="max-w-5xl mx-auto px-6 text-center text-gray-500 text-sm">
+              <p className="mb-4">
+                Project page of RePlan.
+              </p>
+              <div className="flex justify-center gap-6 mb-8">
+                 <a href="#" className="hover:text-gray-900 transition-colors">GitHub</a>
+              </div>
+              <p>&copy; {new Date().getFullYear()}</p>
+            </div>
+          </footer>
+        );
+
+        function App() {
+          return (
+            <div className="min-h-screen bg-white text-gray-900 selection:bg-pink-100 selection:text-pink-900 relative">
+              <Navbar />
+              <main className="relative z-10">
+                <Header />
+                <DynamicTeaser />
+                <Abstract />
+                <Introduction /> 
+                <Method />        
+                <Benchmark />     
+                <Experiments />   
+                <Citation />
+              </main>
+              <Footer />
+            </div>
+          );
+        }
+
+        // 启动 React
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+
+</body>
+</html>
