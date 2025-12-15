@@ -431,7 +431,7 @@
                     <img 
                         src="assets/ailablogo.png" 
                         className="w-full h-full object-contain"
-                        onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
+                        onError={(e) => { e.target.style.display = 'none'; }}
                     />
                   </div>
                   <span>Tencent AI Lab</span>
@@ -636,7 +636,8 @@
 
                             <div className={`absolute inset-0 transition-opacity duration-500 flex flex-col items-center justify-center pointer-events-none ${activeStep === 0 ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}>
                                 <div className="flex flex-col items-center gap-4 p-8 text-center h-full justify-center">
-                                <div className="bg-white/90 backdrop-blur-md p-5 rounded-2xl shadow-xl border border-white/50 max-w-sm transform translate-y-0 transition-transform">
+                                {/* Added animate-pulse-slow here */}
+                                <div className="bg-white/90 backdrop-blur-md p-5 rounded-2xl shadow-xl border border-white/50 max-w-sm transform translate-y-0 transition-transform animate-pulse-slow">
                                     <span className="text-xs font-extrabold text-blue-600 uppercase tracking-widest block mb-2">User Instruction</span>
                                     <p className="text-gray-800 font-medium text-lg leading-snug">"{currentExample.instruction}"</p>
                                 </div>
@@ -976,7 +977,7 @@
                                         src="assets/cup.png" 
                                         alt="Motivation Figure" 
                                         className="h-auto max-h-[250px] w-auto max-w-full object-contain transition-transform duration-500 group-hover:scale-105 block"
-                                        onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
+                                        onError={(e) => { e.target.style.display = 'none'; if (e.target.nextElementSibling) e.target.nextElementSibling.style.display = 'flex'; }}
                                     />
                                     <div className="hidden bg-gray-100 p-8 items-center justify-center min-w-[300px] min-h-[200px] text-center">
                                         <div>
@@ -1097,7 +1098,7 @@
                             src="assets/method.jpg" 
                             alt="RePlan Architecture" 
                             className="w-full h-auto"
-                            onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
+                            onError={(e) => { e.target.style.display = 'none'; if (e.target.nextElementSibling) e.target.nextElementSibling.style.display = 'flex'; }}
                           />
                           <div className="hidden bg-white p-12 items-center justify-center min-h-[400px] border border-dashed border-gray-300 text-center flex-col">
                             <div className="text-blue-500 mb-4 mx-auto w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center">
@@ -1168,7 +1169,7 @@
                             src="assets/benchmark.jpg" 
                             alt="Benchmark Cases" 
                             className="w-full h-auto"
-                            onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
+                            onError={(e) => { e.target.style.display = 'none'; if (e.target.nextElementSibling) e.target.nextElementSibling.style.display = 'flex'; }}
                           />
                           <div className="hidden flex items-center justify-center h-96 bg-gray-50 text-gray-400 flex-col text-center p-8">
                             <p className="font-bold">Benchmark Case Gallery (Large Image Placeholder)</p>
@@ -1191,7 +1192,7 @@
                                     src="assets/referring.jpg" 
                                     alt="Referring Types Chart" 
                                     className="w-full h-full object-contain"
-                                    onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
+                                    onError={(e) => { e.target.style.display = 'none'; if (e.target.nextElementSibling) e.target.nextElementSibling.style.display = 'flex'; }}
                                 />
                                 <div className="hidden flex items-center justify-center w-full h-full text-center text-gray-400">
                                     <p>Referring Chart Placeholder</p>
@@ -1207,7 +1208,7 @@
                                     src="assets/task.jpg" 
                                     alt="Task Types Chart" 
                                     className="w-full h-full object-contain"
-                                    onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
+                                    onError={(e) => { e.target.style.display = 'none'; if (e.target.nextElementSibling) e.target.nextElementSibling.style.display = 'flex'; }}
                                 />
                                 <div className="hidden flex items-center justify-center w-full h-full text-center text-gray-400">
                                     <p>Task Chart Placeholder</p>
