@@ -428,9 +428,13 @@
                   onClick={() => window.scrollTo({top: 0, behavior: 'smooth'})}
                 >
                   <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-500 to-cyan-400 flex items-center justify-center text-white shadow-md group-hover:scale-110 transition-transform">
-                      R
+                    <img 
+                        src="assets/ailablogo.png" 
+                        className="w-full h-full object-contain"
+                        onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
+                    />
                   </div>
-                  <span>RePlan</span>
+                  <span>Tencent AI Lab</span>
                 </div>
 
                 <div className="flex items-center gap-1 bg-gray-100/50 p-1 rounded-full border border-gray-200/50 shrink-0">
@@ -556,7 +560,7 @@
                       <div className="mb-2">
                         <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
                           <Icons.Layers className="text-blue-500" />
-                          Process
+                          RePlan
                         </h3>
                         <p className="text-xs text-gray-500 mt-1">Hover steps to visualize</p>
                       </div>
